@@ -1,13 +1,32 @@
+using AvstickareApi.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
+builder.Configuration
+//sätter mappen där appen körs som rot
+    .SetBasePath(Directory.GetCurrentDirectory())
+    //laddar in värden från appsettings.json
+    .AddJsonFile("appsettings.json", optional: true)
+    //laddar in miljöspecifika versionen
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    //ladda secrets
+    .AddUserSecrets<Program>()
+    //för att inte glömma azure
+    .AddEnvironmentVariables();
+
+// Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-//ladda config från miljövariabler för db
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//db connection postgre
+builder.Services.AddDbContext<AvstickareContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(connectionString);
+});
 
 var app = builder.Build();
 
