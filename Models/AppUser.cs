@@ -1,8 +1,33 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AvstickareApi.Models
 {
-    //användare
+    //modell för användare
     public class AppUser
     {
-        public string Id { get; set;}
+        //props
+        public string AppUserId { get; set; } = Guid.NewGuid().ToString();
+
+        [Required]
+        [MaxLength(50)]
+        public string? UserName { get; set; }
+
+        public string? FirstName { get; set; }
+
+        public string? LastName { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [Required]
+        public string? PasswordHash { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        //relation till favoriteplace och trip
+        public ICollection<FavoritePlace>? FavoritePlaces { get; set; }
+        public ICollection<Trip>? Trips { get; set; }
     }
 }
