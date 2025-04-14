@@ -50,10 +50,10 @@ namespace AvstickareApi.Services
             //inbyggd tokenhanterare
             var tokenHandler = new JwtSecurityTokenHandler();
             //generera token baserat på tokenDescriptor
-            var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+            var token = tokenHandler.CreateToken(tokenDescriptor);
             
             //returnera token
-            return tokenHandler.WriteToken(securityToken); 
+            return tokenHandler.WriteToken(token); 
        }
     }
 }

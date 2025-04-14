@@ -41,7 +41,7 @@ namespace AvstickareApi.Migrations
                     b.Property<string>("LastName")
                         .HasColumnType("text");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
 
