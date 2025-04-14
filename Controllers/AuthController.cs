@@ -51,6 +51,9 @@ namespace AvstickareApi.Controllers
             //hasha läsenordet med bcrypt
             newUser.Password = BCrypt.Net.BCrypt.HashPassword(newUser.Password);
 
+            //tvinga rollen till User så ingen kan sätta Admin vid registrering
+            newUser.Role = "User";
+
             //lägg till användare
             _context.AppUsers.Add(newUser);
             await _context.SaveChangesAsync();
@@ -65,7 +68,7 @@ namespace AvstickareApi.Controllers
 
         //logga in
         [HttpPost("logga-in")]
-        public async Task<IActionResult> Login(AppUser loginUser)
+        public async Task<IActionResult> Login(LoginRequest loginUser)
         {
             //giltig modell?
             if (!ModelState.IsValid)
@@ -103,7 +106,7 @@ namespace AvstickareApi.Controllers
 
         //ändra lösenord, skyddad
         [Authorize]
-        [HttpPost("auth/andra-losenord")]
+        [HttpPost("andra-losenord")]
         public async Task<IActionResult> ChangePassword(ChangePassword change)
         {
             //kontrollera input
@@ -145,8 +148,9 @@ namespace AvstickareApi.Controllers
             return Ok(new { message = "Lösenordet har uppdaterats." });
         }
 
+        //hämta användarinfo
         [Authorize]
-        [HttpGet("/auth/userinfo")]
+        [HttpGet("userinfo")]
         public async Task<IActionResult> GetUserInfo()
         {
             //hämta användare

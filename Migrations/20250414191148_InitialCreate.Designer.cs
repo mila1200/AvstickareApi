@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AvstickareApi.Migrations
 {
     [DbContext(typeof(AvstickareContext))]
-    [Migration("20250411114725_AddRoleToAppUser")]
-    partial class AddRoleToAppUser
+    [Migration("20250414191148_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

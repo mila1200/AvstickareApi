@@ -41,7 +41,7 @@ namespace AvstickareApi.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 //giltigt 1 timme
-                Expires = DateTime.Now.AddHours(1),
+                Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = jwtIssuer,
                 Audience = jwtAudience,
                 SigningCredentials = signingCredentials

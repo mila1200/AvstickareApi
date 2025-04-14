@@ -26,7 +26,7 @@ namespace AvstickareApi.Models
 
         public string Role { get; set; } = "User";
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         //relation till favoriteplace och trip
         public ICollection<FavoritePlace>? FavoritePlaces { get; set; }

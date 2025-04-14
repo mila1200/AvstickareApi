@@ -17,6 +17,6 @@ namespace AvstickareApi.Models
         public int PlaceId { get; set; }
         public Place? Place { get; set; }
 
-        public DateTime SavedAt {get; set;} = DateTime.Now;
+        public DateTime SavedAt {get; set;} = DateTime.UtcNow;
     }
 }
