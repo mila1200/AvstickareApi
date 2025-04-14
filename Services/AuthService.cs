@@ -7,18 +7,13 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AvstickareApi.Services
 {
-    public class AuthService
+    public class AuthService(IConfiguration configuration)
     {
         //läser in konfigurationer från program.cs
-       private readonly IConfiguration _configuration; 
-
-       public AuthService(IConfiguration configuration)
-       {
-        _configuration = configuration;
-       }
+       private readonly IConfiguration _configuration = configuration;
 
         //skapa och returnera token
-       public string CreateToken(AppUser user)
+        public string CreateToken(AppUser user)
        {
             //hämta konfigvärden
             var jwtKey = _configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("JWT-key saknas");

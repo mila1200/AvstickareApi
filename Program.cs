@@ -72,6 +72,13 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    //i utvecklingsläge, mer detlajerade felmeddelanden
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    //i produktion, omdirigera till endpoint error
+    app.UseExceptionHandler("/error");
 }
 
 app.UseHttpsRedirection();
