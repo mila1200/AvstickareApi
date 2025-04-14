@@ -24,6 +24,8 @@ namespace AvstickareApi.Models
         [Required]
         public string? PasswordHash { get; set; }
 
+        public string Role { get; set; } = "User";
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         //relation till favoriteplace och trip

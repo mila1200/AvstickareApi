@@ -1,5 +1,10 @@
+using System.Text;
 using AvstickareApi.Data;
+using AvstickareApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +33,39 @@ builder.Services.AddDbContext<AvstickareContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+//hämta jwt-secrets från user secrets
+var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("JWT key saknas");
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? throw new InvalidOperationException("Issuer saknas");
+var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? throw new InvalidOperationException("Audience saknas");
+
+//registrera authservice som reggar jwt
+builder.Services.AddTransient<AuthService>();
+
+//autentisering. Varje inkommande anrop kommer autetiseras med JWT-bearer. Om inte ok, 401.
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        //validera användare och audience
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        //se till att den inte gått ut
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        //omvandla och verifiera signatur
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -37,6 +75,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
