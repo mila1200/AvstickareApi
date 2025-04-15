@@ -66,6 +66,9 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+//plocka in servicene gällande APIer från google
+builder.Services.AddHttpClient<GoogleMapsService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

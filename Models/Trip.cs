@@ -16,6 +16,11 @@ namespace AvstickareApi.Models
         [Required]
         public string? TripTo { get; set; }
 
+        public double? FromLat { get; set; }
+        public double? FromLng { get; set; }
+        public double? ToLat { get; set; }
+        public double ToLng { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         //en resa kan innehålla flera stopp
