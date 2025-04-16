@@ -7,19 +7,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using AvstickareApi.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AvstickareApi.Controllers
 {
+    //generera resa, spara resa, hämta, ta bort
+
     [Route("api/[controller]")]
     [ApiController]
-    public class TripController : ControllerBase
+    public class TripController(AvstickareContext context, GoogleMapsService mapsService) : ControllerBase
     {
-        private readonly AvstickareContext _context;
-
-        public TripController(AvstickareContext context)
-        {
-            _context = context;
-        }
+        private readonly AvstickareContext _context = context;
+        private readonly GoogleMapsService _mapsService = mapsService;
 
         // GET: api/Trip
         [HttpGet]
@@ -42,39 +42,27 @@ namespace AvstickareApi.Controllers
             return trip;
         }
 
-        // PUT: api/Trip/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTrip(int id, Trip trip)
+
+        //POST: api/Trip/plan
+        //try/catch då jag hämtar info från externa källor
+        [HttpPost("plan")]
+        public async Task<IActionResult> PlanTrip(Trip trip)
         {
-            if (id != trip.TripId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(trip).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TripExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                var (polyline, distance, duration) = await _mapsService.CreateTrip(trip);
 
-            return NoContent();
+                return Ok(new { Trip = trip, Polyline = polyline, Distance = distance, Duration = duration });
+            
+            } catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message});
+            }
         }
 
-        // POST: api/Trip
+        // POST: api/Trip (spara resa om inloggad)
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Trip>> PostTrip(Trip trip)
         {
@@ -100,6 +88,7 @@ namespace AvstickareApi.Controllers
             return NoContent();
         }
 
+        //kan eventuellt användas för att kolla om resor finns när tripstops ska uppdateras
         private bool TripExists(int id)
         {
             return _context.Trips.Any(e => e.TripId == id);

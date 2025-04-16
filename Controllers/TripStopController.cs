@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
 
+//lägg till, ta bort stopp i en sparad resa
+
 namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]

@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
 
+//endast get, visa kategorier
+
 namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]

@@ -6,7 +6,6 @@ namespace AvstickareApi.Models
     public class Trip
     {
         public int TripId { get; set; }
-        [Required]
         public string? AppUserId { get; set; }
         public AppUser? User { get; set; }
 
@@ -19,7 +18,7 @@ namespace AvstickareApi.Models
         public double? FromLat { get; set; }
         public double? FromLng { get; set; }
         public double? ToLat { get; set; }
-        public double ToLng { get; set; }
+        public double? ToLng { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

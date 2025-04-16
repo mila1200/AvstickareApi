@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
 
+//visa plats, platsdetaljer eller sökning
+
 namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]
