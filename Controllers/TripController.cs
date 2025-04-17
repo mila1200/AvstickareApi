@@ -9,6 +9,7 @@ using AvstickareApi.Data;
 using AvstickareApi.Models;
 using AvstickareApi.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace AvstickareApi.Controllers
 {
@@ -50,13 +51,18 @@ namespace AvstickareApi.Controllers
         {
             try
             {
+                //hämta rutt och koordinater
                 var (polyline, distance, duration) = await _mapsService.CreateTrip(trip);
 
-                return Ok(new { Trip = trip, Polyline = polyline, Distance = distance, Duration = duration });
-            
-            } catch (Exception ex)
+                //generera platser från polyline, skapar ej trip eller tripstop. Sparar endast places i databasen.
+                var places = await _mapsService.CreatePlace(polyline!, _context);
+
+                return Ok(new { Trip = trip, Polyline = polyline, Distance = distance, Duration = duration, SuggestedPlaces = places });
+
+            }
+            catch (Exception ex)
             {
-                return BadRequest(new { Error = ex.Message});
+                return BadRequest(new { Error = ex.Message });
             }
         }
 
@@ -64,8 +70,15 @@ namespace AvstickareApi.Controllers
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<Trip>> PostTrip(Trip trip)
+        public async Task<ActionResult<Trip>> SaveTrip(Trip trip)
         {
+            trip.AppUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(trip.AppUserId))
+            {
+                return BadRequest("Användare måste vara inloggad för att spara resan");
+            }
+
             _context.Trips.Add(trip);
             await _context.SaveChangesAsync();
 

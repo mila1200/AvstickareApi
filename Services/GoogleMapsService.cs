@@ -1,6 +1,7 @@
-
 using System.Text.Json;
+using AvstickareApi.Data;
 using AvstickareApi.Models;
+using PolylinerNet;
 
 namespace AvstickareApi.Services
 {
@@ -61,8 +62,6 @@ namespace AvstickareApi.Services
                 throw new ArgumentException("Resan måste ha en start- och en slutdestination");
             }
 
-            Console.WriteLine($"Värdena från: {trip.TripFrom}, till: {trip.TripTo}");
-
             var fromCoordinates = await GetLatLng(trip.TripFrom);
             var toCoordinates = await GetLatLng(trip.TripTo);
 
@@ -97,8 +96,6 @@ namespace AvstickareApi.Services
             //svaret
             var json = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine($"Svaret: {json}");
-
             using var doc = JsonDocument.Parse(json);
 
             // Hämta första resultatet i "results"-arrayen
@@ -120,5 +117,75 @@ namespace AvstickareApi.Services
 
             return (polyline, distance, duration);
         }
+
+        //Avkoda polylines för att lägga till ruttstopp
+        public async Task<List<Place>> CreatePlace(string polyline, AvstickareContext avstickareContext)
+        {
+            //avkoda polyline
+            var polyliner = new Polyliner();
+            var points = polyliner.Decode(polyline);
+
+            var places = new List<Place>();
+
+            //loopa igenom
+            foreach (var point in points)
+            {
+                //hämta namnet på resmålet genom reverse geocoding
+                var name = await GetPlaceName(point.Latitude, point.Longitude);
+
+                //skapa nytt place OBS!!!! HANTERA CATEGORY SENARE!!
+                var place = new Place { Name = name ?? "Resmål", Lat = point.Latitude, Lng = point.Longitude, CategoryId = 1 };
+
+                //lägger till platsen
+                avstickareContext.Places.Add(place);
+                places.Add(place);
+            };
+
+            //lägg till i databasen för att slippa anropa API så mycket
+            await avstickareContext.SaveChangesAsync();
+            return places;
+        }
+
+        //tar in lat och lng för att returnera ett platsnamn som sträng
+        public async Task<string?> GetPlaceName(double lat, double lng)
+        {
+            //omvandla till strängar med . istället för ,
+            string latStr = lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string lngStr = lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            //anropa geocode med lat och long
+            var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={latStr},{lngStr}&key={_apiKey}";
+
+            //svaret
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("Kunde inte anropa Geocode API. Försök igen.");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            //kontrollera status
+            if (!root.TryGetProperty("status", out var statusElement) || statusElement.GetString() != "OK")
+            {
+                throw new Exception("Geokodning misslyckades.");
+            }
+
+            //resultat
+            var firstResult = root.GetProperty("results").EnumerateArray().FirstOrDefault();
+            if(firstResult.ValueKind == JsonValueKind.Undefined)
+            {
+                throw new Exception("Inga resultat hittades.");
+            }
+
+            return firstResult.GetProperty("formatted_address").GetString();
+        }
+
+
     }
+
+
 }

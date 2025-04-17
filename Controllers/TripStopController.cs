@@ -23,56 +23,22 @@ namespace AvstickareApi.Controllers
             _context = context;
         }
 
-        // GET: api/TripStop
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TripStop>>> GetTripStops()
+        // GET: api/TripStop/trip/tripId (för att visa stoppen på en specifik resa)
+        [HttpGet("/trip/{tripId}")]
+        public async Task<ActionResult<IEnumerable<TripStop>>> GetTripStopForTrip(int tripId)
         {
-            return await _context.TripStops.ToListAsync();
-        }
+            var stops = await _context.TripStops
+            .Where(tripstop => tripstop.TripId == tripId)
+            .Include(tripstop => tripstop.Place)
+            .OrderBy(tripstop => tripstop.Order)
+            .ToListAsync();
 
-        // GET: api/TripStop/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TripStop>> GetTripStop(int id)
-        {
-            var tripStop = await _context.TripStops.FindAsync(id);
-
-            if (tripStop == null)
+            if (stops == null)
             {
                 return NotFound();
             }
 
-            return tripStop;
-        }
-
-        // PUT: api/TripStop/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTripStop(int id, TripStop tripStop)
-        {
-            if (id != tripStop.TripStopId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(tripStop).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TripStopExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return stops;
         }
 
         // POST: api/TripStop
