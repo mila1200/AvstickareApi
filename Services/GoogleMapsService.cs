@@ -185,6 +185,7 @@ namespace AvstickareApi.Services
                     var lng = result.GetProperty("location").GetProperty("longitude").GetDouble();
                     var placeId = result.GetProperty("id").GetString();
 
+                    //skapa ny plats
                     places.Add(new Place
                     {
                         Name = name ?? "Platsnamn saknas",
@@ -195,8 +196,61 @@ namespace AvstickareApi.Services
                     });
                 }
             }
-
             return places;
+        }
+
+        public async Task<string> GetPlaceDetails(string mapServicePlaceId)
+        {
+            //anropa API
+            var url = $"https://places.googleapis.com/v1/places/{mapServicePlaceId}?fields=id,displayName,formattedAddress,internationalPhoneNumber,openingHours,rating,website,photos&key={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("Kunde inte hämta platsdetaljer från Google.");
+            }
+
+            //svaret
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            //försöker hämta med Try annars returneras null om det inte finns.
+            var id = root.GetProperty("id").GetString();
+            var name = root.GetProperty("displayName").GetProperty("text").GetString();
+            var address = root.TryGetProperty("formattedAddress", out var addressElement) ? addressElement.GetString() : null;
+            var phone = root.TryGetProperty("internationalPhoneNumber", out var phoneElement) ? phoneElement.GetString() : null;
+            var website = root.TryGetProperty("website", out var websiteElement) ? websiteElement.GetString() : null;
+            var rating = root.TryGetProperty("rating", out var ratingElement) ? ratingElement.GetDouble() : (double?)null;
+
+            //öppettider, kontrollera om det finns. i så fall hämta listan
+            List<string>? openingHours = null;
+            if (root.TryGetProperty("openingHours", out var openingElement) &&
+                openingElement.TryGetProperty("weekdayDescriptions", out var weekdayArray))
+            {
+                openingHours = weekdayArray.EnumerateArray()
+                                           .Select(d => d.GetString())
+                                           .Where(s => s != null)
+                                           .ToList()!;
+            }
+
+            //foto kan saknas helt eller vara tom.
+            string? photoName = null;
+            if (root.TryGetProperty("photos", out var photosArray) && photosArray.GetArrayLength() > 0)
+            {
+                photoName = photosArray[0].GetProperty("name").GetString();
+            }
+
+            return new PlaceDetails
+            {
+                Id = id,
+                Name = name,
+                Address = address,
+                Phone = phone,
+                Website = website,
+                Rating = rating,
+                OpeningHours = openingHours,
+                Photo = photoName
+            };
         }
     }
 }
