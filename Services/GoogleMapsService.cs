@@ -1,6 +1,9 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using Microsoft.EntityFrameworkCore;
 using PolylinerNet;
 
 namespace AvstickareApi.Services
@@ -95,7 +98,6 @@ namespace AvstickareApi.Services
 
             //svaret
             var json = await response.Content.ReadAsStringAsync();
-
             using var doc = JsonDocument.Parse(json);
 
             // Hämta första resultatet i "results"-arrayen
@@ -119,73 +121,82 @@ namespace AvstickareApi.Services
         }
 
         //Avkoda polylines för att lägga till ruttstopp
-        public async Task<List<Place>> CreatePlace(string polyline, AvstickareContext avstickareContext)
+        public async Task<List<Place>> CreatePlace(string polyline)
         {
             //avkoda polyline
             var polyliner = new Polyliner();
             var points = polyliner.Decode(polyline);
 
             var places = new List<Place>();
+            const int step = 10;
 
-            //loopa igenom
-            foreach (var point in points)
+            for (int i = 0; i < points.Count; i += step)
             {
-                //hämta namnet på resmålet genom reverse geocoding
-                var name = await GetPlaceName(point.Latitude, point.Longitude);
+                var point = points[i];
 
-                //skapa nytt place OBS!!!! HANTERA CATEGORY SENARE!!
-                var place = new Place { Name = name ?? "Resmål", Lat = point.Latitude, Lng = point.Longitude, CategoryId = 1 };
+                //skapar förfrågan till Google places api (new)
+                var requestBody = new
+                {
+                    includedTypes = new[] { "tourist_attraction", "museum", "park", "restaurant", "art_gallery" },
+                    maxResultCount = 10,
+                    //skapar en cirkel i mitten av varje punkt med en radie på 5km
+                    locationRestriction = new
+                    {
+                        circle = new
+                        {
+                            center = new
+                            {
+                                latitude = point.Latitude,
+                                longitude = point.Longitude
+                            },
+                            radius = 5000.0
+                        }
+                    }
+                };
 
-                //lägger till platsen
-                avstickareContext.Places.Add(place);
-                places.Add(place);
-            };
+                var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            //lägg till i databasen för att slippa anropa API så mycket
-            await avstickareContext.SaveChangesAsync();
+                //förfrågan
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://places.googleapis.com/v1/places:searchNearby");
+                //lägger till innehåll och headers
+                request.Content = content;
+                request.Headers.Add("X-Goog-Api-Key", _apiKey);
+                request.Headers.Add("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location,places.id");
+
+                //svaret
+                var response = await _httpClient.SendAsync(request);
+                var json = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception("Kunde inte anropa Google Places API. Försök igen.");
+                }
+
+                using var doc = JsonDocument.Parse(json);
+
+                //kolla om det finns places, annars hoppa över
+                if (!doc.RootElement.TryGetProperty("places", out var placesArray)) continue;
+
+                //loopa igenom listan
+                foreach (var result in placesArray.EnumerateArray())
+                {
+                    var name = result.GetProperty("displayName").GetProperty("text").GetString();
+                    var lat = result.GetProperty("location").GetProperty("latitude").GetDouble();
+                    var lng = result.GetProperty("location").GetProperty("longitude").GetDouble();
+                    var placeId = result.GetProperty("id").GetString();
+
+                    places.Add(new Place
+                    {
+                        Name = name ?? "Platsnamn saknas",
+                        Lat = lat,
+                        Lng = lng,
+                        MapServicePlaceId = placeId,
+                        CategoryId = 1
+                    });
+                }
+            }
+
             return places;
         }
-
-        //tar in lat och lng för att returnera ett platsnamn som sträng
-        public async Task<string?> GetPlaceName(double lat, double lng)
-        {
-            //omvandla till strängar med . istället för ,
-            string latStr = lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string lngStr = lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            //anropa geocode med lat och long
-            var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={latStr},{lngStr}&key={_apiKey}";
-
-            //svaret
-            var response = await _httpClient.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception("Kunde inte anropa Geocode API. Försök igen.");
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            //kontrollera status
-            if (!root.TryGetProperty("status", out var statusElement) || statusElement.GetString() != "OK")
-            {
-                throw new Exception("Geokodning misslyckades.");
-            }
-
-            //resultat
-            var firstResult = root.GetProperty("results").EnumerateArray().FirstOrDefault();
-            if(firstResult.ValueKind == JsonValueKind.Undefined)
-            {
-                throw new Exception("Inga resultat hittades.");
-            }
-
-            return firstResult.GetProperty("formatted_address").GetString();
-        }
-
-
     }
-
-
 }

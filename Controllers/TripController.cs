@@ -54,8 +54,8 @@ namespace AvstickareApi.Controllers
                 //hämta rutt och koordinater
                 var (polyline, distance, duration) = await _mapsService.CreateTrip(trip);
 
-                //generera platser från polyline, skapar ej trip eller tripstop. Sparar endast places i databasen.
-                var places = await _mapsService.CreatePlace(polyline!, _context);
+                //generera platser från polyline, skapar ej trip eller tripstop.
+                var places = await _mapsService.CreatePlace(polyline!);
 
                 return Ok(new { Trip = trip, Polyline = polyline, Distance = distance, Duration = duration, SuggestedPlaces = places });
 
