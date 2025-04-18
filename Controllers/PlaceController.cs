@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using AvstickareApi.Services;
 
 //visa plats, platsdetaljer eller sökning
 
@@ -17,10 +18,12 @@ namespace AvstickareApi.Controllers
     public class PlaceController : ControllerBase
     {
         private readonly AvstickareContext _context;
+        private readonly GoogleMapsService _mapsService;
 
-        public PlaceController(AvstickareContext context)
+        public PlaceController(AvstickareContext context, GoogleMapsService mapsService)
         {
             _context = context;
+            _mapsService = mapsService;
         }
 
         // GET: api/Place
@@ -42,6 +45,20 @@ namespace AvstickareApi.Controllers
             }
 
             return place;
+        }
+
+        [HttpGet("details/{mapServicePlaceId}")]
+        public async Task<ActionResult<PlaceDetails>> GetPlaceDetails(string mapServicePlaceId)
+        {
+            try
+            {
+                var details = await _mapsService.GetPlaceDetails(mapServicePlaceId);
+                return Ok(details);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
         }
     }
 }
