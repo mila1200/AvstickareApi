@@ -10,15 +10,18 @@ namespace AvstickareApi.Models
         public AppUser? User { get; set; }
 
         public string Name { get; set; } = $"Min resa {DateTime.UtcNow:yyyy-MM-dd}";
-        [Required]
-        public string? TripFrom { get; set; }
-        [Required]
-        public string? TripTo { get; set; }
 
-        public double? FromLat { get; set; }
-        public double? FromLng { get; set; }
-        public double? ToLat { get; set; }
-        public double? ToLng { get; set; }
+        //startplats, koppling till placeId
+        [Required]
+        public int FromPlaceId { get; set; }
+
+        public Place? FromPlace { get; set; }
+        
+        //slutplats, koppling till placeId
+        [Required]
+        public int ToPlaceId { get; set; }
+        
+        public Place? ToPlace { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

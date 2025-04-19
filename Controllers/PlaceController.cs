@@ -30,21 +30,52 @@ namespace AvstickareApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Place>>> GetPlaces()
         {
-            return await _context.Places.ToListAsync();
+            //hämta endast den info frontend är intresserad av.
+            var places = await _context.Places
+            .Include(p => p.Category)
+        .Select(p => new
+        {
+            p.PlaceId,
+            p.Name,
+            p.Lat,
+            p.Lng,
+            p.MapServicePlaceId,
+            Category = p.Category != null ? p.Category.Name : null
+        })
+        .ToListAsync();
+
+            //kollar om det finns några platser
+            if (places == null || !places.Any())
+            {
+                return NotFound("Det finns inga platser att hämta.");
+            }
+
+            return Ok(places);
         }
 
         // GET: api/Place/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Place>> GetPlace(int id)
+        public async Task<ActionResult<object>> GetPlace(int id)
         {
-            var place = await _context.Places.FindAsync(id);
+            //hämta plats med id och returnera relevant info
+            var place = await _context.Places
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.PlaceId == id);
 
             if (place == null)
             {
-                return NotFound();
+                return NotFound(new { message = $"Platsen med id {id} hittades inte." });
             }
 
-            return place;
+            return Ok(new
+            {
+                place.PlaceId,
+                place.MapServicePlaceId,
+                place.Name,
+                place.Lat,
+                place.Lng,
+                Category = place.Category?.Name
+            });
         }
 
         [HttpGet("details/{mapServicePlaceId}")]

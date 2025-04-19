@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using Microsoft.AspNetCore.Authorization;
 
 //endast get, visa kategorier
 
@@ -44,37 +45,8 @@ namespace AvstickareApi.Controllers
             return category;
         }
 
-        // PUT: api/Category/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(int id, Category category)
-        {
-            if (id != category.CategoryId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(category).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CategoryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
+        //För att kunna lägga till kategorier
+        [Authorize(Roles = "Admin")]
         // POST: api/Category
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -86,6 +58,8 @@ namespace AvstickareApi.Controllers
             return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
         }
 
+        //För att kunna ta bort kategorier
+        [Authorize(Roles = "Admin")]
         // DELETE: api/Category/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
@@ -100,11 +74,6 @@ namespace AvstickareApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private bool CategoryExists(int id)
-        {
-            return _context.Categories.Any(e => e.CategoryId == id);
         }
     }
 }

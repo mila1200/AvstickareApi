@@ -1,5 +1,9 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AvstickareApi.Models
 {
+    //kan inte lagra uppgifter om ett resmål mer än tillfälligt enligt Google TOS.
+    [NotMapped]
     public class PlaceDetails
     {
         public string? Id { get; set; }

@@ -8,9 +8,12 @@ using PolylinerNet;
 
 namespace AvstickareApi.Services
 {
-    public class GoogleMapsService(HttpClient httpClient, IConfiguration config)
+    public class GoogleMapsService(HttpClient httpClient, IConfiguration config, AvstickareContext context)
     {
         private readonly HttpClient _httpClient = httpClient;
+
+        //databasanslutning
+        private readonly AvstickareContext _context = context;
         //hämta nyckeln
         private readonly string _apiKey = config["GoogleApi:ApiKey"] ?? throw new ArgumentNullException("GoogleApi:ApiKey");
 
@@ -57,43 +60,26 @@ namespace AvstickareApi.Services
         }
 
         //skapar en resa
-        public async Task<(string? polyline, string? distance, string? duration)> CreateTrip(Trip trip)
+        public async Task<(string? polyline, string? distance, string? duration)> CreateTrip(int fromPlaceId, int toPlaceId)
         {
-            //måste vara ifylld
-            if (string.IsNullOrWhiteSpace(trip.TripFrom) || string.IsNullOrWhiteSpace(trip.TripTo))
-            {
-                throw new ArgumentException("Resan måste ha en start- och en slutdestination");
-            }
+            //försök hämta start och slut från databas med hjälp av id
+            var fromPlace = await _context.Places.FindAsync(fromPlaceId) ?? throw new ArgumentException("Startplatsen hittades inte.");
 
-            var fromCoordinates = await GetLatLng(trip.TripFrom);
-            var toCoordinates = await GetLatLng(trip.TripTo);
+            var toPlace = await _context.Places.FindAsync(toPlaceId) ?? throw new ArgumentException("Slutplatsen hittades inte.");
 
-            //spara koordinater
-            var fromLat = trip.FromLat = fromCoordinates.lat;
-            var fromLng = trip.FromLng = fromCoordinates.lng;
-            var toLat = trip.ToLat = toCoordinates.lat;
-            var toLng = trip.ToLng = toCoordinates.lng;
-
-            if (fromLat == null || fromLng == null || toLat == null || toLng == null)
-            {
-                throw new Exception("Koordinater saknas.");
-            }
-
-            //omvandlar till stäng med . istället för , för att det ska fungera med google.
-            string fromLatStr = fromLat.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string fromLngStr = fromLng.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string toLatStr = toLat.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string toLngStr = toLng.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            Console.WriteLine($"lat och long; {fromLatStr}, {fromLngStr}, {toLatStr}, {toLngStr}");
+            //konverterar koordinater till API-anrop
+            string fromLat = fromPlace.Lat.ToString(CultureInfo.InvariantCulture);
+            string fromLng = fromPlace.Lng.ToString(CultureInfo.InvariantCulture);
+            string toLat = toPlace.Lat.ToString(CultureInfo.InvariantCulture);
+            var toLng = toPlace.Lng.ToString(CultureInfo.InvariantCulture);
 
             //hämta rutt från api
-            var url = $"https://maps.googleapis.com/maps/api/directions/json?origin={fromLatStr},{fromLngStr}&destination={toLatStr},{toLngStr}&mode=driving&key={_apiKey}";
+            var url = $"https://maps.googleapis.com/maps/api/directions/json?origin={fromLat},{fromLng}&destination={toLat},{toLng}&mode=driving&key={_apiKey}";
 
             var response = await _httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception("Kunde inte anropa Google API. Försök igen.");
+                throw new Exception("Kunde inte anropa Google API.");
             }
 
             //svaret
@@ -129,9 +115,15 @@ namespace AvstickareApi.Services
 
             var places = new List<Place>();
             const int step = 10;
+            
+            //begränsar svaren för att det inte ska urarta
+            const int maxTotalResults = 50;
 
             for (int i = 0; i < points.Count; i += step)
             {
+                //om fler resultat än 50 slut sök. För att API-anrop inte ska urarta
+                if(places.Count >= maxTotalResults) break;
+
                 var point = points[i];
 
                 //skapar förfrågan till Google places api (new)
@@ -240,11 +232,15 @@ namespace AvstickareApi.Services
                                            .ToList()!;
             }
 
-            //foto, kollar om det finns och skapar i så fall bild-URL för nytt anrop
-            string? photoName = null;
+            //foto URL
+            string? photoUrl = null; 
             if (root.TryGetProperty("photos", out var photosArray) && photosArray.GetArrayLength() > 0)
             {
-                photoName = photosArray[0].GetProperty("name").GetString();
+                var photoName = photosArray[0].GetProperty("name").GetString();
+                if(!string.IsNullOrEmpty(photoName))
+                {
+                    photoUrl = $"https://places.googleapis.com/v1/{photoName}/media?key={_apiKey}";
+                }
             }
 
             //rerunrerar info som objekt
@@ -257,7 +253,7 @@ namespace AvstickareApi.Services
                 Website = website,
                 Rating = rating,
                 OpeningHours = openingHours,
-                Photo = photoName
+                Photo = photoUrl
             };
         }
     }

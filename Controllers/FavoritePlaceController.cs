@@ -7,12 +7,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 //lägg till, ta bort/lista favoriter
 
 namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class FavoritePlaceController : ControllerBase
     {
@@ -23,88 +26,117 @@ namespace AvstickareApi.Controllers
             _context = context;
         }
 
-        // GET: api/FavoritePlace
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<FavoritePlace>>> GetFavoritePlaces()
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<object>>> GetFavoritePlaces()
         {
-            return await _context.FavoritePlaces.ToListAsync();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            //hämta avoriter där platsen inte är null
+            var favorites = await _context.FavoritePlaces
+                .Where(f => f.AppUserId == userId)
+                .Include(f => f.Place)
+                .ToListAsync();
+
+            //kopplar resultat till favoriter och löser null-fel
+            var result = favorites
+                .Where(f => f.Place != null)
+                .Select(f => new
+                {
+                    f.FavoritePlaceId,
+                    f.Place!.PlaceId,
+                    f.Place.MapServicePlaceId,
+                    f.SavedAt
+                });
+
+            return Ok(result);
         }
 
-        // GET: api/FavoritePlace/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<FavoritePlace>> GetFavoritePlace(int id)
+        [Authorize]
+        public async Task<ActionResult<object>> GetFavoritePlace(int id)
         {
-            var favoritePlace = await _context.FavoritePlaces.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (favoritePlace == null)
+            var favorite = await _context.FavoritePlaces
+                .Include(f => f.Place)
+                .FirstOrDefaultAsync(f => f.FavoritePlaceId == id && f.AppUserId == userId);
+
+            if (favorite == null)
             {
-                return NotFound();
+                return NotFound("Favoriten hittades inte.");
             }
 
-            return favoritePlace;
+            if (favorite.Place == null)
+            {
+                return BadRequest("Favoriten är kopplad till en plats som inte längre finns.");
+            }
+
+            return Ok(new
+            {
+                favorite.FavoritePlaceId,
+                favorite.Place.PlaceId,
+                favorite.Place.MapServicePlaceId,
+                favorite.SavedAt
+            });
         }
 
-        // PUT: api/FavoritePlace/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutFavoritePlace(int id, FavoritePlace favoritePlace)
+        // POST: api/FavoritePlace/{placeId}
+        [HttpPost("{placeId}")]
+        public async Task<ActionResult<FavoritePlace>> AddFavoritePlace(int placeId)
         {
-            if (id != favoritePlace.FavoritePlaceId)
+            //användare
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            //kontrollera om platsen finns
+            var placeExists = await _context.Places.AnyAsync(place => place.PlaceId == placeId);
+            if (!placeExists)
             {
-                return BadRequest();
+                return NotFound("Platsen hittades inte.");
             }
 
-            _context.Entry(favoritePlace).State = EntityState.Modified;
+            // kontrollera dubbletter
+            var favoriteExists = await _context.FavoritePlaces
+                .AnyAsync(favoriteplace => favoriteplace.AppUserId == userId && favoriteplace.PlaceId == placeId);
 
-            try
+            if (favoriteExists)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!FavoritePlaceExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest("Platsen är redan sparad som favorit.");
             }
 
-            return NoContent();
-        }
+            var favoritePlace = new FavoritePlace
+            {
+                AppUserId = userId,
+                PlaceId = placeId,
+            };
 
-        // POST: api/FavoritePlace
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<FavoritePlace>> PostFavoritePlace(FavoritePlace favoritePlace)
-        {
             _context.FavoritePlaces.Add(favoritePlace);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetFavoritePlace", new { id = favoritePlace.FavoritePlaceId }, favoritePlace);
+            return CreatedAtAction(nameof(GetFavoritePlace), new { id = favoritePlace.FavoritePlaceId }, favoritePlace);
         }
 
-        // DELETE: api/FavoritePlace/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteFavoritePlace(int id)
+        // DELETE: api/FavoritePlace/{placeId}
+        [HttpDelete("{placeId}")]
+        public async Task<IActionResult> RemoveFavoritePlace(int placeId)
         {
-            var favoritePlace = await _context.FavoritePlaces.FindAsync(id);
+            //användare
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var favoritePlace = await _context.FavoritePlaces
+                .FirstOrDefaultAsync(favoriteplace => favoriteplace.AppUserId == userId && favoriteplace.PlaceId == placeId);
+
+            //finns den?
             if (favoritePlace == null)
             {
-                return NotFound();
+                return NotFound("Favoriten hittades inte.");
             }
 
+            //ta bort
             _context.FavoritePlaces.Remove(favoritePlace);
             await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
-
-        private bool FavoritePlaceExists(int id)
-        {
-            return _context.FavoritePlaces.Any(e => e.FavoritePlaceId == id);
+            return Ok(new { message = "Platsen har tagits bort från favoriter." });
         }
     }
 }

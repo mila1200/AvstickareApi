@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 //lägg till, ta bort stopp i en sparad resa
 
@@ -14,6 +16,7 @@ namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TripStopController : ControllerBase
     {
         private readonly AvstickareContext _context;
@@ -25,52 +28,111 @@ namespace AvstickareApi.Controllers
 
         // GET: api/TripStop/trip/tripId (för att visa stoppen på en specifik resa)
         [HttpGet("/trip/{tripId}")]
-        public async Task<ActionResult<IEnumerable<TripStop>>> GetTripStopForTrip(int tripId)
+        public async Task<ActionResult<IEnumerable<object>>> GetTripStopForTrip(int tripId)
         {
-            var stops = await _context.TripStops
-            .Where(tripstop => tripstop.TripId == tripId)
-            .Include(tripstop => tripstop.Place)
-            .OrderBy(tripstop => tripstop.Order)
-            .ToListAsync();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (stops == null)
+            // Kontrollera att resan existerar och tillhör användaren
+            var trip = await _context.Trips
+                .FirstOrDefaultAsync(t => t.TripId == tripId && t.AppUserId == userId);
+
+            if (trip == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Resan hittades inte." });
             }
 
-            return stops;
+            //hämta stopp
+            var stops = await _context.TripStops
+                .Where(s => s.TripId == tripId)
+                .Include(s => s.Place)
+                .OrderBy(s => s.Order)
+                .ToListAsync();
+
+            if (stops == null || !stops.Any())
+            {
+                return NotFound(new { message = "Inga stopp hittades för denna resa." });
+            }
+
+            //returnera objekt
+            var result = stops
+                .Where(s => s.Place != null)
+                .Select(s => new
+                {
+                    s.TripStopId,
+                    s.Order,
+                    s.Place!.PlaceId,
+                    s.Place.MapServicePlaceId,
+                    s.Place.Name,
+                    s.Place.Lat,
+                    s.Place.Lng
+                });
+
+            return Ok(result);
         }
 
         // POST: api/TripStop
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<TripStop>> PostTripStop(TripStop tripStop)
+        public async Task<ActionResult> PostTripStop([FromBody] TripStop tripStop)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            //kontrollera att resan tillhör användaren
+            var trip = await _context.Trips
+                .FirstOrDefaultAsync(t => t.TripId == tripStop.TripId && t.AppUserId == userId);
+
+            if (trip == null)
+            {
+                return BadRequest("Resan hittades inte eller tillhör inte dig.");
+            }
+
+            //kontrollera att platsen finns
+            var placeExists = await _context.Places.AnyAsync(p => p.PlaceId == tripStop.PlaceId);
+            if (!placeExists)
+            {
+                return BadRequest("Platsen hittades inte.");
+            }
+
+            //lägg till stoppet
             _context.TripStops.Add(tripStop);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTripStop", new { id = tripStop.TripStopId }, tripStop);
+            return Ok(new { message = "Stoppet har lagts till.", tripStop.TripStopId });
         }
 
         // DELETE: api/TripStop/5
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTripStop(int id)
         {
-            var tripStop = await _context.TripStops.FindAsync(id);
-            if (tripStop == null)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var stop = await _context.TripStops
+                .Include(s => s.Trip)
+                .FirstOrDefaultAsync(s => s.TripStopId == id);
+
+            //om stoppet inte finns 
+            if (stop == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Stoppet hittades inte." });
             }
 
-            _context.TripStops.Remove(tripStop);
+            //om relationen till Trip inte funkar
+            if (stop.Trip == null)
+            {
+                return BadRequest(new { message = "Stoppet är inte kopplat till någon resa." });
+            }
+
+            //om resan inte tillhör inloggad användare
+            if (stop.Trip.AppUserId != userId)
+            {
+                return Unauthorized(new { message = "Du har inte tillåtelse att ta bort detta stopp." });
+            }
+
+            _context.TripStops.Remove(stop);
             await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
-
-        private bool TripStopExists(int id)
-        {
-            return _context.TripStops.Any(e => e.TripStopId == id);
+            return Ok(new { message = "Stoppet har tagits bort från resan." });
         }
     }
 }

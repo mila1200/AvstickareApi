@@ -130,7 +130,6 @@ namespace AvstickareApi.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("PlaceId");
@@ -149,39 +148,28 @@ namespace AvstickareApi.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TripId"));
 
                     b.Property<string>("AppUserId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<double?>("FromLat")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("FromLng")
-                        .HasColumnType("double precision");
+                    b.Property<int>("FromPlaceId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double?>("ToLat")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ToLng")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("TripFrom")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TripTo")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("ToPlaceId")
+                        .HasColumnType("integer");
 
                     b.HasKey("TripId");
 
                     b.HasIndex("AppUserId");
+
+                    b.HasIndex("FromPlaceId");
+
+                    b.HasIndex("ToPlaceId");
 
                     b.ToTable("Trips");
                 });
@@ -246,9 +234,23 @@ namespace AvstickareApi.Migrations
                 {
                     b.HasOne("AvstickareApi.Models.AppUser", "User")
                         .WithMany("Trips")
-                        .HasForeignKey("AppUserId")
+                        .HasForeignKey("AppUserId");
+
+                    b.HasOne("AvstickareApi.Models.Place", "FromPlace")
+                        .WithMany()
+                        .HasForeignKey("FromPlaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("AvstickareApi.Models.Place", "ToPlace")
+                        .WithMany()
+                        .HasForeignKey("ToPlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FromPlace");
+
+                    b.Navigation("ToPlace");
 
                     b.Navigation("User");
                 });

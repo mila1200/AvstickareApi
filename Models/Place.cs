@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AvstickareApi.Models
 {
@@ -7,8 +8,7 @@ namespace AvstickareApi.Models
     {
         public int PlaceId { get; set; }
 
-        //required om platsen ska sparas i databasen trots att användaren inte aktivt fyller i något
-        [Required]
+        //får sparas i databas om det inte är på bulk och användaren aktivt gör ett sådant val enligt google TOS.
         public string? Name { get; set; }
 
         //latitud och longitud
