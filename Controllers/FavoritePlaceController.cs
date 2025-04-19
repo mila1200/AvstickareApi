@@ -52,12 +52,14 @@ namespace AvstickareApi.Controllers
             return Ok(result);
         }
 
+        //hämta favoriter baserat på id
         [HttpGet("{id}")]
         [Authorize]
         public async Task<ActionResult<object>> GetFavoritePlace(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+//hämta favorit där id och användare stämmer
             var favorite = await _context.FavoritePlaces
                 .Include(f => f.Place)
                 .FirstOrDefaultAsync(f => f.FavoritePlaceId == id && f.AppUserId == userId);
@@ -81,6 +83,7 @@ namespace AvstickareApi.Controllers
             });
         }
 
+        //lägg till en plats som favorit
         // POST: api/FavoritePlace/{placeId}
         [HttpPost("{placeId}")]
         public async Task<ActionResult<FavoritePlace>> AddFavoritePlace(int placeId)
@@ -104,6 +107,7 @@ namespace AvstickareApi.Controllers
                 return BadRequest("Platsen är redan sparad som favorit.");
             }
 
+            //skapa och spara favorit med användarid och platsid
             var favoritePlace = new FavoritePlace
             {
                 AppUserId = userId,
@@ -116,6 +120,7 @@ namespace AvstickareApi.Controllers
             return CreatedAtAction(nameof(GetFavoritePlace), new { id = favoritePlace.FavoritePlaceId }, favoritePlace);
         }
 
+        //ta bort favorit
         // DELETE: api/FavoritePlace/{placeId}
         [HttpDelete("{placeId}")]
         public async Task<IActionResult> RemoveFavoritePlace(int placeId)

@@ -25,6 +25,7 @@ namespace AvstickareApi.Controllers
         private readonly AvstickareContext _context = context;
 
         // GET: api/Trip
+        //Hämtar alla resor för inloggad användare
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetTrips()
         {
@@ -49,6 +50,7 @@ namespace AvstickareApi.Controllers
         }
 
         // GET: api/Trip/5
+        //hämtar detaljerad info om specifik resa baserat på id
         [HttpGet("{id}")]
         public async Task<ActionResult<object>> GetTrip(int id)
         {
@@ -75,6 +77,7 @@ namespace AvstickareApi.Controllers
         }
 
         //POST: api/Trip/plan
+        // Genererar rutt och föreslagna platser mellan två punkter (skapar inte resa)
         //try/catch då jag hämtar info från externa källor
         [HttpPost("plan")]
         public async Task<IActionResult> PlanTrip(Trip trip)
@@ -121,6 +124,7 @@ namespace AvstickareApi.Controllers
         }
 
         // DELETE: api/Trip/5
+        // Tar bort en sparad resa
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTrip(int id)
         {

@@ -27,6 +27,7 @@ namespace AvstickareApi.Controllers
         }
 
         // GET: api/TripStop/trip/tripId (för att visa stoppen på en specifik resa)
+        //hämtar alla stopp för specifik resa
         [HttpGet("/trip/{tripId}")]
         public async Task<ActionResult<IEnumerable<object>>> GetTripStopForTrip(int tripId)
         {
@@ -53,7 +54,7 @@ namespace AvstickareApi.Controllers
                 return NotFound(new { message = "Inga stopp hittades för denna resa." });
             }
 
-            //returnera objekt
+            //returnera resultat
             var result = stops
                 .Where(s => s.Place != null)
                 .Select(s => new
@@ -71,6 +72,7 @@ namespace AvstickareApi.Controllers
         }
 
         // POST: api/TripStop
+        //lägg till nytt stopp till befintlig resa
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult> PostTripStop([FromBody] TripStop tripStop)
@@ -101,7 +103,7 @@ namespace AvstickareApi.Controllers
         }
 
         // DELETE: api/TripStop/5
-
+        //tar bort stopp från en resa
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTripStop(int id)
         {
@@ -129,6 +131,7 @@ namespace AvstickareApi.Controllers
                 return Unauthorized(new { message = "Du har inte tillåtelse att ta bort detta stopp." });
             }
 
+            //ta bort stoppet
             _context.TripStops.Remove(stop);
             await _context.SaveChangesAsync();
 

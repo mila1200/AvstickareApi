@@ -27,6 +27,7 @@ namespace AvstickareApi.Controllers
         }
 
         // GET: api/Place
+        //hämta en lista med alla platser
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Place>>> GetPlaces()
         {
@@ -54,6 +55,7 @@ namespace AvstickareApi.Controllers
         }
 
         // GET: api/Place/5
+        //hämtar detlajerad info om plats baserat på id
         [HttpGet("{id}")]
         public async Task<ActionResult<object>> GetPlace(int id)
         {
@@ -78,11 +80,12 @@ namespace AvstickareApi.Controllers
             });
         }
 
+        //hämta info om en plats från google baserat på deras id
         [HttpGet("details/{mapServicePlaceId}")]
         public async Task<ActionResult<PlaceDetails>> GetPlaceDetails(string mapServicePlaceId)
         {
             try
-            {
+            {   //anropa service för att hämta data
                 var details = await _mapsService.GetPlaceDetails(mapServicePlaceId);
                 return Ok(details);
             }
