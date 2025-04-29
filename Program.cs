@@ -66,8 +66,24 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-//plocka in servicene gällande APIer från google
-builder.Services.AddHttpClient<GoogleMapsService>();
+//Cors-inställningar för utveckling
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowFrontend",
+    policy =>
+    {
+        policy.WithOrigins("http://localhost:5247")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
+
+builder.Services.AddControllers();
+
+//ta in services
+builder.Services.AddScoped<PlaceService>();
+builder.Services.AddScoped<RouteService>();
+builder.Services.AddScoped<SuggestedPlaceService>();
 
 var app = builder.Build();
 
@@ -91,5 +107,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseCors("AllowFrontend");
 
 app.Run();

@@ -1,147 +1,178 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
 using AvstickareApi.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace AvstickareApi.Controllers
+namespace AvstickareApi.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TripController : ControllerBase
 {
-    //generera resa, spara resa, hämta, ta bort
+    //databasen
+    private readonly AvstickareContext _context;
+    private readonly PlaceService _placeService;
+    private readonly RouteService _routeService;
+    private readonly SuggestedPlaceService _suggestedPlaceService;
 
-    [Route("api/[controller]")]
-    [ApiController]
-    [Authorize]
-    public class TripController(GoogleMapsService mapsService, AvstickareContext context) : ControllerBase
+    public TripController(AvstickareContext context, PlaceService placeService, RouteService routeService, SuggestedPlaceService suggestedPlaceService)
     {
+        _context = context;
+        _placeService = placeService;
+        _routeService = routeService;
+        _suggestedPlaceService = suggestedPlaceService;
+    }
 
-        private readonly GoogleMapsService _mapsService = mapsService;
-        private readonly AvstickareContext _context = context;
-
-        // GET: api/Trip
-        //Hämtar alla resor för inloggad användare
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetTrips()
+    // POST: api/Trip/plan
+    //för att generera en rutt mellan två orter
+    //hämtar PlaceId från text, koordinater via Google, rutt, och föreslagna platser längs vägen
+    [HttpPost("plan")]
+    public async Task<IActionResult> PlanTrip([FromBody] PlanTripRequest request)
+    {
+        try
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            var trips = await _context.Trips
-                .Where(t => t.AppUserId == userId)
-                .Include(t => t.FromPlace)
-                .Include(t => t.ToPlace)
-                .OrderByDescending(t => t.CreatedAt)
-                .Select(t => new
+            if (string.IsNullOrWhiteSpace(request.FromLocation) || string.IsNullOrWhiteSpace(request.ToLocation))
                 {
-                    t.TripId,
-                    t.Name,
-                    From = t.FromPlace != null ? t.FromPlace.Name : null,
-                    To = t.ToPlace != null ? t.ToPlace.Name : null,
-                    t.CreatedAt
-                })
-                .ToListAsync();
+                    return BadRequest("Start- och slutdestination måste anges.");
+                }
+                    
+            //hämta Google PlaceId
+            var fromPlaceId = await _placeService.GetPlaceIdFromLocation(request.FromLocation);
+            var toPlaceId = await _placeService.GetPlaceIdFromLocation(request.ToLocation);
 
-            return Ok(trips);
-        }
+            //kontrollera om PlaceId finns i databasen
+            await _placeService.EnsurePlaceExists(fromPlaceId);
+            await _placeService.EnsurePlaceExists(toPlaceId);
 
-        // GET: api/Trip/5
-        //hämtar detaljerad info om specifik resa baserat på id
-        [HttpGet("{id}")]
-        public async Task<ActionResult<object>> GetTrip(int id)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //hämta koordinater för rutt
+            var fromCoords = await _placeService.GetCoordinates(fromPlaceId);
+            var toCoords = await _placeService.GetCoordinates(toPlaceId);
 
-            var trip = await _context.Trips
-                .Include(t => t.FromPlace)
-                .Include(t => t.ToPlace)
-                .FirstOrDefaultAsync(t => t.TripId == id && t.AppUserId == userId);
+            //skapa rutt från A till B
+            var (polyline, distance, duration) = await _routeService.CreateTripRoute(fromCoords, toCoords);
 
-            if (trip == null)
-            {
-                return NotFound(new { message = "Resan hittades inte." });
-            }
+            //hämta föreslagna platser längs rutten
+            var suggestedPlaces = await _suggestedPlaceService.GetSuggestedPlacesAlongRoute(polyline!);
 
             return Ok(new
             {
-                trip.TripId,
-                trip.Name,
-                trip.CreatedAt,
-                From = new { trip.FromPlace?.PlaceId, trip.FromPlace?.Name },
-                To = new { trip.ToPlace?.PlaceId, trip.ToPlace?.Name }
+                FromPlaceId = fromPlaceId,
+                ToPlaceId = toPlaceId,
+                Polyline = polyline,
+                Distance = distance,
+                Duration = duration,
+                SuggestedPlaces = suggestedPlaces
             });
         }
-
-        //POST: api/Trip/plan
-        // Genererar rutt och föreslagna platser mellan två punkter (skapar inte resa)
-        //try/catch då jag hämtar info från externa källor
-        [HttpPost("plan")]
-        public async Task<IActionResult> PlanTrip(Trip trip)
+        catch (Exception ex)
         {
-            try
+            return BadRequest(new { Error = ex.Message });
+        }
+    }
+
+    // GET: api/Trip
+    //returnerar alla sparade resor för inloggad användare
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> GetTrips()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var trips = await _context.Trips
+            .Where(t => t.AppUserId == userId)
+            .Include(t => t.FromPlace)
+            .Include(t => t.ToPlace)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => new
             {
-                //hämta rutt och koordinater
-                var (polyline, distance, duration) = await _mapsService.CreateTrip(trip.FromPlaceId, trip.ToPlaceId);
+                t.TripId,
+                t.Name,
+                From = t.FromPlace != null ? t.FromPlace.MapServicePlaceId : null,
+                To = t.ToPlace != null ? t.ToPlace.MapServicePlaceId : null,
+                t.CreatedAt
+            })
+            .ToListAsync();
 
-                //generera platser från polyline, skapar ej trip eller tripstop.
-                var places = await _mapsService.CreatePlace(polyline!);
+        return Ok(trips);
+    }
 
-                return Ok(new { Trip = trip, Polyline = polyline, Distance = distance, Duration = duration, SuggestedPlaces = places });
+    // GET: api/Trip/{id}
+    //returnerar en specifik sparad resa för inloggad användare
+    [Authorize]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetTrip(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message });
-            }
+        var trip = await _context.Trips
+            .Include(t => t.FromPlace)
+            .Include(t => t.ToPlace)
+            .FirstOrDefaultAsync(t => t.TripId == id && t.AppUserId == userId);
+
+        if (trip == null)
+        {
+            return NotFound(new { message = "Resan hittades inte." });
         }
 
-        // POST: api/Trip (spara resa om inloggad)
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Trip>> SaveTrip(Trip trip)
+        return Ok(new
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+            trip.TripId,
+            trip.Name,
+            trip.CreatedAt,
+            From = trip.FromPlace?.MapServicePlaceId,
+            To = trip.ToPlace?.MapServicePlaceId
+        });
+    }
 
-            // kontrollera att platserna finns
-            var fromExists = await _context.Places.AnyAsync(p => p.PlaceId == trip.FromPlaceId);
-            var toExists = await _context.Places.AnyAsync(p => p.PlaceId == trip.ToPlaceId);
-
-            if (!fromExists || !toExists)
-            {
-                return BadRequest("Start- eller slutplatsen finns inte.");
-            }
-
-            trip.AppUserId = userId;
-            _context.Trips.Add(trip);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTrip), new { id = trip.TripId }, trip);
+    // POST: api/Trip
+    //sparar en ny resa för inloggad användare
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> SaveTrip([FromBody] Trip trip)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
         }
 
-        // DELETE: api/Trip/5
-        // Tar bort en sparad resa
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTrip(int id)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //kontrollera om PlaceId finns
+        var fromExists = await _context.Places.AnyAsync(p => p.MapServicePlaceId == trip.FromPlaceId);
+        var toExists = await _context.Places.AnyAsync(p => p.MapServicePlaceId == trip.ToPlaceId);
 
-            var trip = await _context.Trips
-                .FirstOrDefaultAsync(t => t.TripId == id && t.AppUserId == userId);
+        if (!fromExists || !toExists)
+            {
+               return BadRequest("Start- eller slutplatsen finns inte."); 
+            }
 
-            if (trip == null)
+        trip.AppUserId = userId;
+        _context.Trips.Add(trip);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetTrip), new { id = trip.TripId }, trip);
+    }
+
+    // DELETE: api/Trip/{id}
+    //tar bort en sparad resa för inloggad användare
+    [Authorize]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTrip(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var trip = await _context.Trips.FirstOrDefaultAsync(t => t.TripId == id && t.AppUserId == userId);
+
+        if (trip == null)
             {
                 return NotFound(new { message = "Resan hittades inte." });
             }
+            
+        _context.Trips.Remove(trip);
+        await _context.SaveChangesAsync();
 
-            _context.Trips.Remove(trip);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Resan har tagits bort." });
-        }
+        return Ok(new { message = "Resan har tagits bort." });
     }
 }

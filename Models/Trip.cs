@@ -13,13 +13,13 @@ namespace AvstickareApi.Models
 
         //startplats, koppling till placeId
         [Required]
-        public int FromPlaceId { get; set; }
+        public string? FromPlaceId { get; set; }
 
         public Place? FromPlace { get; set; }
         
         //slutplats, koppling till placeId
         [Required]
-        public int ToPlaceId { get; set; }
+        public string? ToPlaceId { get; set; }
         
         public Place? ToPlace { get; set; }
 

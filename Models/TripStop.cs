@@ -9,11 +9,10 @@ namespace AvstickareApi.Models
         public int TripId { get; set; }
         public Trip? Trip { get; set; }
 
-        //vilka stopp
-        public int PlaceId { get; set; }
-        public Place? Place { get; set; }
+        //google place id
+        public string? MapServicePlaceId {get; set;}
 
-        //för att underlätta sortering av stopp
+        //för att underlätta sortering
         public int Order { get; set; }
     }
 }

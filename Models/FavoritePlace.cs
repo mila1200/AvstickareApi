@@ -13,10 +13,9 @@ namespace AvstickareApi.Models
         public AppUser? User { get; set; }
 
         //behöver veta vilken plats det gäller
-        [Required]
-        public int PlaceId { get; set; }
-        public Place? Place { get; set; }
+        public string? MapServicePlaceId { get; set; }
 
-        public DateTime SavedAt {get; set;} = DateTime.UtcNow;
+
+        public DateTime SavedAt { get; set; } = DateTime.UtcNow;
     }
 }
