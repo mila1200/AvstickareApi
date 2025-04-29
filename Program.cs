@@ -81,9 +81,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 
 //ta in services
-builder.Services.AddScoped<PlaceService>();
-builder.Services.AddScoped<RouteService>();
-builder.Services.AddScoped<SuggestedPlaceService>();
+builder.Services.AddHttpClient<PlaceService>();
+builder.Services.AddHttpClient<RouteService>();
+builder.Services.AddHttpClient<SuggestedPlaceService>();
 
 var app = builder.Build();
 

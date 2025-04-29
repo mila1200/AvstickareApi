@@ -31,39 +31,16 @@ namespace AvstickareApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Categories",
-                columns: table => new
-                {
-                    CategoryId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Categories", x => x.CategoryId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Places",
                 columns: table => new
                 {
                     PlaceId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    Lat = table.Column<double>(type: "double precision", nullable: false),
-                    Lng = table.Column<double>(type: "double precision", nullable: false),
-                    CategoryId = table.Column<int>(type: "integer", nullable: false),
-                    MapServicePlaceId = table.Column<string>(type: "text", nullable: true)
+                    MapServicePlaceId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Places", x => x.PlaceId);
-                    table.ForeignKey(
-                        name: "FK_Places_Categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalTable: "Categories",
-                        principalColumn: "CategoryId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -73,8 +50,9 @@ namespace AvstickareApi.Migrations
                     FavoritePlaceId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AppUserId = table.Column<string>(type: "text", nullable: false),
-                    PlaceId = table.Column<int>(type: "integer", nullable: false),
-                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    MapServicePlaceId = table.Column<string>(type: "text", nullable: true),
+                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    PlaceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -89,8 +67,7 @@ namespace AvstickareApi.Migrations
                         name: "FK_FavoritePlaces_Places_PlaceId",
                         column: x => x.PlaceId,
                         principalTable: "Places",
-                        principalColumn: "PlaceId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "PlaceId");
                 });
 
             migrationBuilder.CreateTable(
@@ -101,8 +78,10 @@ namespace AvstickareApi.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AppUserId = table.Column<string>(type: "text", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: false),
-                    FromPlaceId = table.Column<int>(type: "integer", nullable: false),
-                    ToPlaceId = table.Column<int>(type: "integer", nullable: false),
+                    FromPlaceId = table.Column<string>(type: "text", nullable: false),
+                    FromPlacePlaceId = table.Column<int>(type: "integer", nullable: true),
+                    ToPlaceId = table.Column<string>(type: "text", nullable: false),
+                    ToPlacePlaceId = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -114,17 +93,15 @@ namespace AvstickareApi.Migrations
                         principalTable: "AppUsers",
                         principalColumn: "AppUserId");
                     table.ForeignKey(
-                        name: "FK_Trips_Places_FromPlaceId",
-                        column: x => x.FromPlaceId,
+                        name: "FK_Trips_Places_FromPlacePlaceId",
+                        column: x => x.FromPlacePlaceId,
                         principalTable: "Places",
-                        principalColumn: "PlaceId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "PlaceId");
                     table.ForeignKey(
-                        name: "FK_Trips_Places_ToPlaceId",
-                        column: x => x.ToPlaceId,
+                        name: "FK_Trips_Places_ToPlacePlaceId",
+                        column: x => x.ToPlacePlaceId,
                         principalTable: "Places",
-                        principalColumn: "PlaceId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "PlaceId");
                 });
 
             migrationBuilder.CreateTable(
@@ -134,8 +111,9 @@ namespace AvstickareApi.Migrations
                     TripStopId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TripId = table.Column<int>(type: "integer", nullable: false),
-                    PlaceId = table.Column<int>(type: "integer", nullable: false),
-                    Order = table.Column<int>(type: "integer", nullable: false)
+                    MapServicePlaceId = table.Column<string>(type: "text", nullable: true),
+                    Order = table.Column<int>(type: "integer", nullable: false),
+                    PlaceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -144,8 +122,7 @@ namespace AvstickareApi.Migrations
                         name: "FK_TripStops_Places_PlaceId",
                         column: x => x.PlaceId,
                         principalTable: "Places",
-                        principalColumn: "PlaceId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "PlaceId");
                     table.ForeignKey(
                         name: "FK_TripStops_Trips_TripId",
                         column: x => x.TripId,
@@ -177,24 +154,19 @@ namespace AvstickareApi.Migrations
                 column: "PlaceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Places_CategoryId",
-                table: "Places",
-                column: "CategoryId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Trips_AppUserId",
                 table: "Trips",
                 column: "AppUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Trips_FromPlaceId",
+                name: "IX_Trips_FromPlacePlaceId",
                 table: "Trips",
-                column: "FromPlaceId");
+                column: "FromPlacePlaceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Trips_ToPlaceId",
+                name: "IX_Trips_ToPlacePlaceId",
                 table: "Trips",
-                column: "ToPlaceId");
+                column: "ToPlacePlaceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TripStops_PlaceId",
@@ -224,9 +196,6 @@ namespace AvstickareApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "Places");
-
-            migrationBuilder.DropTable(
-                name: "Categories");
         }
     }
 }

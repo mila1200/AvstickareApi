@@ -65,23 +65,6 @@ namespace AvstickareApi.Migrations
                     b.ToTable("AppUsers");
                 });
 
-            modelBuilder.Entity("AvstickareApi.Models.Category", b =>
-                {
-                    b.Property<int>("CategoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CategoryId"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("CategoryId");
-
-                    b.ToTable("Categories");
-                });
-
             modelBuilder.Entity("AvstickareApi.Models.FavoritePlace", b =>
                 {
                     b.Property<int>("FavoritePlaceId")
@@ -94,7 +77,10 @@ namespace AvstickareApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PlaceId")
+                    b.Property<string>("MapServicePlaceId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PlaceId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("SavedAt")
@@ -117,24 +103,11 @@ namespace AvstickareApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PlaceId"));
 
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("Lat")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Lng")
-                        .HasColumnType("double precision");
-
                     b.Property<string>("MapServicePlaceId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("PlaceId");
-
-                    b.HasIndex("CategoryId");
 
                     b.ToTable("Places");
                 });
@@ -153,23 +126,31 @@ namespace AvstickareApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("FromPlaceId")
+                    b.Property<string>("FromPlaceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("FromPlacePlaceId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("ToPlaceId")
+                    b.Property<string>("ToPlaceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ToPlacePlaceId")
                         .HasColumnType("integer");
 
                     b.HasKey("TripId");
 
                     b.HasIndex("AppUserId");
 
-                    b.HasIndex("FromPlaceId");
+                    b.HasIndex("FromPlacePlaceId");
 
-                    b.HasIndex("ToPlaceId");
+                    b.HasIndex("ToPlacePlaceId");
 
                     b.ToTable("Trips");
                 });
@@ -182,10 +163,13 @@ namespace AvstickareApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TripStopId"));
 
+                    b.Property<string>("MapServicePlaceId")
+                        .HasColumnType("text");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PlaceId")
+                    b.Property<int?>("PlaceId")
                         .HasColumnType("integer");
 
                     b.Property<int>("TripId")
@@ -208,26 +192,11 @@ namespace AvstickareApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AvstickareApi.Models.Place", "Place")
+                    b.HasOne("AvstickareApi.Models.Place", null)
                         .WithMany("FavoritePlaces")
-                        .HasForeignKey("PlaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Place");
+                        .HasForeignKey("PlaceId");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("AvstickareApi.Models.Place", b =>
-                {
-                    b.HasOne("AvstickareApi.Models.Category", "Category")
-                        .WithMany("Places")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("AvstickareApi.Models.Trip", b =>
@@ -238,15 +207,11 @@ namespace AvstickareApi.Migrations
 
                     b.HasOne("AvstickareApi.Models.Place", "FromPlace")
                         .WithMany()
-                        .HasForeignKey("FromPlaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FromPlacePlaceId");
 
                     b.HasOne("AvstickareApi.Models.Place", "ToPlace")
                         .WithMany()
-                        .HasForeignKey("ToPlaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ToPlacePlaceId");
 
                     b.Navigation("FromPlace");
 
@@ -257,19 +222,15 @@ namespace AvstickareApi.Migrations
 
             modelBuilder.Entity("AvstickareApi.Models.TripStop", b =>
                 {
-                    b.HasOne("AvstickareApi.Models.Place", "Place")
+                    b.HasOne("AvstickareApi.Models.Place", null)
                         .WithMany("TripStops")
-                        .HasForeignKey("PlaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PlaceId");
 
                     b.HasOne("AvstickareApi.Models.Trip", "Trip")
                         .WithMany("TripStops")
                         .HasForeignKey("TripId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Place");
 
                     b.Navigation("Trip");
                 });
@@ -279,11 +240,6 @@ namespace AvstickareApi.Migrations
                     b.Navigation("FavoritePlaces");
 
                     b.Navigation("Trips");
-                });
-
-            modelBuilder.Entity("AvstickareApi.Models.Category", b =>
-                {
-                    b.Navigation("Places");
                 });
 
             modelBuilder.Entity("AvstickareApi.Models.Place", b =>
