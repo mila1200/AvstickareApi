@@ -21,7 +21,7 @@ public class SuggestedPlaceService(HttpClient http, IConfiguration config)
         const int step = 10;
 
         //begränsar svaren för att det inte ska urarta
-        const int maxTotalResults = 50;
+        const int maxTotalResults = 5;
 
         for (int i = 0; i < points.Count && places.Count < maxTotalResults; i += step)
         {

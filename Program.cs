@@ -78,8 +78,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
-
 //ta in services
 builder.Services.AddHttpClient<PlaceService>();
 builder.Services.AddHttpClient<RouteService>();
@@ -102,12 +100,14 @@ else
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.UseCors("AllowFrontend");
+
 
 app.Run();

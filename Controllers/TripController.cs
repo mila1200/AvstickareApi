@@ -57,6 +57,15 @@ public class TripController : ControllerBase
             //hämta föreslagna platser längs rutten
             var suggestedPlaces = await _suggestedPlaceService.GetSuggestedPlacesAlongRoute(polyline!);
 
+            //för att matcha platsinfo i frontend
+            var frontendPlaces = suggestedPlaces.Select(places => new
+            {
+                Name = places.Name,
+                Lat = places.Latitude,
+                Lng = places.Longitude,
+                MapServicePlaceId = places.Id
+            });
+
             return Ok(new
             {
                 FromPlaceId = fromPlaceId,
@@ -64,7 +73,7 @@ public class TripController : ControllerBase
                 Polyline = polyline,
                 Distance = distance,
                 Duration = duration,
-                SuggestedPlaces = suggestedPlaces
+                SuggestedPlaces = frontendPlaces
             });
         }
         catch (Exception ex)
