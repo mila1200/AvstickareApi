@@ -32,7 +32,7 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
 
         if (result.ValueKind == JsonValueKind.Undefined)
         {
-            throw new Exception("Ingen plats hittades.");
+            throw new Exception("Ingen plats hittades. Kontrollera stavningen och försök igen.");
         }
 
         return result.GetProperty("place_id").GetString() ?? throw new Exception("Platsens ID saknas.");
@@ -71,10 +71,10 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
         await _context.SaveChangesAsync();
     }
 
-    //hämta platsdetaljer från Google Places API
+    //hämta platsdetaljer från Google Places API, på svenska
     public async Task<PlaceDetails> GetPlaceDetails(string placeId)
     {
-        var url = $"https://places.googleapis.com/v1/places/{placeId}";
+        var url = $"https://places.googleapis.com/v1/places/{placeId}?languageCode=sv";
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("X-Goog-Api-Key", _apiKey);
         request.Headers.Add("X-Goog-FieldMask", "id,displayName,formattedAddress,internationalPhoneNumber,websiteUri,rating,regularOpeningHours.weekdayDescriptions,photos");
@@ -110,9 +110,10 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
         {
             var photoName = photosArr[0].GetProperty("name").GetString();
             if (!string.IsNullOrEmpty(photoName))
-                photoUrl = $"https://places.googleapis.com/v1/{photoName}/media?key={_apiKey}";
+                photoUrl = $"https://places.googleapis.com/v1/{photoName}/media?key={_apiKey}&maxWidthPx=800";
         }
 
+        
         return new PlaceDetails
         {
             Id = placeId,

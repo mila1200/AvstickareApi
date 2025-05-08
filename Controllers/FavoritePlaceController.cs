@@ -15,7 +15,7 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
     private readonly AvstickareContext _context = context;
     private readonly PlaceService _placeService = placeService;
 
-    
+
     //hämtar alla favoriter för den inloggade användaren.
     [Authorize]
     [HttpGet]
@@ -35,28 +35,33 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
         return Ok(favorites);
     }
 
-    
+
     //lägger till en plats i favoriter för inloggad användare.
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> AddFavorite([FromBody] FavoritePlace favoritePlace)
+    public async Task<IActionResult> AddFavorite([FromBody] FavoritePlaceRequest request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(favoritePlace.MapServicePlaceId))
+        if (string.IsNullOrWhiteSpace(request.MapServicePlaceId))
             return BadRequest("Ogiltigt plats-ID.");
 
-        await _placeService.EnsurePlaceExists(favoritePlace.MapServicePlaceId);
+        await _placeService.EnsurePlaceExists(request.MapServicePlaceId);
 
-        favoritePlace.AppUserId = userId;
-        _context.FavoritePlaces.Add(favoritePlace);
+        var favorite = new FavoritePlace
+        {
+            AppUserId = userId,
+            MapServicePlaceId = request.MapServicePlaceId
+        };
+
+        _context.FavoritePlaces.Add(favorite);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetFavorites), new { id = favoritePlace.FavoritePlaceId }, favoritePlace);
+        return CreatedAtAction(nameof(GetFavorites), new { id = favorite.FavoritePlaceId }, favorite);
     }
 
-    
     //tar bort en favoritplats för inloggad användare.
     [Authorize]
     [HttpDelete("{id}")]
@@ -71,7 +76,7 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
         {
             return NotFound(new { message = "Favoritplatsen hittades inte." });
         }
-            
+
         _context.FavoritePlaces.Remove(favorite);
         await _context.SaveChangesAsync();
 

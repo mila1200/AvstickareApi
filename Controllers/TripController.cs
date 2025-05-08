@@ -34,11 +34,12 @@ public class TripController : ControllerBase
     {
         try
         {
+
             if (string.IsNullOrWhiteSpace(request.FromLocation) || string.IsNullOrWhiteSpace(request.ToLocation))
-                {
-                    return BadRequest("Start- och slutdestination måste anges.");
-                }
-                    
+            {
+                return BadRequest("Start- och slutdestination måste anges.");
+            }
+
             //hämta Google PlaceId
             var fromPlaceId = await _placeService.GetPlaceIdFromLocation(request.FromLocation);
             var toPlaceId = await _placeService.GetPlaceIdFromLocation(request.ToLocation);
@@ -78,7 +79,7 @@ public class TripController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Error = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 
@@ -153,9 +154,9 @@ public class TripController : ControllerBase
         var toExists = await _context.Places.AnyAsync(p => p.MapServicePlaceId == trip.ToPlaceId);
 
         if (!fromExists || !toExists)
-            {
-               return BadRequest("Start- eller slutplatsen finns inte."); 
-            }
+        {
+            return BadRequest("Start- eller slutplatsen finns inte.");
+        }
 
         trip.AppUserId = userId;
         _context.Trips.Add(trip);
@@ -175,10 +176,10 @@ public class TripController : ControllerBase
         var trip = await _context.Trips.FirstOrDefaultAsync(t => t.TripId == id && t.AppUserId == userId);
 
         if (trip == null)
-            {
-                return NotFound(new { message = "Resan hittades inte." });
-            }
-            
+        {
+            return NotFound(new { message = "Resan hittades inte." });
+        }
+
         _context.Trips.Remove(trip);
         await _context.SaveChangesAsync();
 

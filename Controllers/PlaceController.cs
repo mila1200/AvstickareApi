@@ -15,6 +15,7 @@ public class PlaceController(PlaceService placeService) : ControllerBase
     {
         try
         {
+            
             var placeDetails = await _placeService.GetPlaceDetails(placeId);
             return Ok(placeDetails);
         }
