@@ -11,8 +11,6 @@ namespace AvstickareApi.Models
         [Required]
         public string? MapServicePlaceId { get; set; }
 
-        //relation till favoriter och sparade resestopp
-        public ICollection<FavoritePlace>? FavoritePlaces { get; set; }
         public ICollection<TripStop>? TripStops { get; set; }
     }
 }

@@ -34,7 +34,6 @@ public class TripController : ControllerBase
     {
         try
         {
-
             if (string.IsNullOrWhiteSpace(request.FromLocation) || string.IsNullOrWhiteSpace(request.ToLocation))
             {
                 return BadRequest("Start- och slutdestination måste anges.");

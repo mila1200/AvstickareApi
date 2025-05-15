@@ -77,7 +77,7 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
         var url = $"https://places.googleapis.com/v1/places/{placeId}?languageCode=sv";
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("X-Goog-Api-Key", _apiKey);
-        request.Headers.Add("X-Goog-FieldMask", "id,displayName,formattedAddress,internationalPhoneNumber,websiteUri,rating,regularOpeningHours.weekdayDescriptions,photos");
+        request.Headers.Add("X-Goog-FieldMask", "id,displayName,formattedAddress,internationalPhoneNumber,websiteUri,rating,regularOpeningHours.weekdayDescriptions,photos,location");
 
         var response = await _http.SendAsync(request);
         if (!response.IsSuccessStatusCode)
@@ -113,7 +113,15 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
                 photoUrl = $"https://places.googleapis.com/v1/{photoName}/media?key={_apiKey}&maxWidthPx=800";
         }
 
-        
+        double? latitude = null;
+        double? longitude = null;
+        //plockar ut koordinaterna
+        if (root.TryGetProperty("location", out var locationElement))
+        {
+            latitude = locationElement.TryGetProperty("latitude", out var latElement) ? latElement.GetDouble() : (double?)null;
+            longitude = locationElement.TryGetProperty("longitude", out var lngElement) ? lngElement.GetDouble() : (double?)null;
+        }
+
         return new PlaceDetails
         {
             Id = placeId,
@@ -123,7 +131,9 @@ public class PlaceService(HttpClient http, IConfiguration config, AvstickareCont
             Website = website,
             Rating = rating,
             OpeningHours = openingHours,
-            Photo = photoUrl
+            Photo = photoUrl,
+            Latitude = latitude,
+            Longitude = longitude
         };
     }
 }

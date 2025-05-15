@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AvstickareApi.Migrations
 {
     [DbContext(typeof(AvstickareContext))]
-    [Migration("20250429190629_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250512082141_InitialClean")]
+    partial class InitialClean
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

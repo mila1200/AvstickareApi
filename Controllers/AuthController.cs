@@ -100,8 +100,11 @@ namespace AvstickareApi.Controllers
             var token = _authService.CreateToken(user);
 
             //returnera och token för att logga in
-            return Ok(new
-            { message = "Inloggning lyckades", token });
+            return Ok(new LoginResponse
+            {
+                Message = "Inloggning lyckades",
+                Token = token
+            });
         }
 
         //ändra lösenord, skyddad

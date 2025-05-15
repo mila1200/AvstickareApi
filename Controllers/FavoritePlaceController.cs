@@ -35,6 +35,24 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
         return Ok(favorites);
     }
 
+    //kolla om en plats finns sparad som favorit i databasen
+    // GET: api/FavoritePlace/exists/{mapServicePlaceId}
+    [HttpGet("exists/{mapServicePlaceId}")]
+    [Authorize]
+    public async Task<IActionResult> IsFavoritePlace(string mapServicePlaceId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(mapServicePlaceId))
+        {
+            return BadRequest("Plats-ID saknas.");
+        }
+            
+        var exists = await _context.FavoritePlaces
+            .AnyAsync(f => f.AppUserId == userId && f.MapServicePlaceId == mapServicePlaceId);
+
+        return Ok(new { isFavorite = exists });
+    }
 
     //lägger till en plats i favoriter för inloggad användare.
     [Authorize]
@@ -64,13 +82,13 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
 
     //tar bort en favoritplats för inloggad användare.
     [Authorize]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteFavorite(int id)
+    [HttpDelete("remove/{mapServicePlaceId}")]
+    public async Task<IActionResult> DeleteFavorite(string mapServicePlaceId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var favorite = await _context.FavoritePlaces
-            .FirstOrDefaultAsync(f => f.FavoritePlaceId == id && f.AppUserId == userId);
+            .FirstOrDefaultAsync(f => f.AppUserId == userId && f.MapServicePlaceId == mapServicePlaceId);
 
         if (favorite == null)
         {
