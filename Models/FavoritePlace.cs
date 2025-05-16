@@ -15,7 +15,6 @@ namespace AvstickareApi.Models
         //behöver veta vilken plats det gäller
         public string? MapServicePlaceId { get; set; }
 
-
         public DateTime SavedAt { get; set; } = DateTime.UtcNow;
     }
 }

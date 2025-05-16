@@ -10,7 +10,5 @@ namespace AvstickareApi.Models
         //för att kunna hänvisa till platsen via karttjänsten
         [Required]
         public string? MapServicePlaceId { get; set; }
-
-        public ICollection<TripStop>? TripStops { get; set; }
     }
 }
