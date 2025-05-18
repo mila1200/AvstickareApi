@@ -62,7 +62,7 @@ public class SuggestedPlaceService(HttpClient http, IConfiguration config)
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
 
-            //kolla om det finns places, annars hoppa över
+            //kolla om det finns places och lägg till isf, annars gå vidare till nästa punkt
             if (!doc.RootElement.TryGetProperty("places", out var array))
             {
                 continue;

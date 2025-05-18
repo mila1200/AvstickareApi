@@ -7,95 +7,87 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AvstickareApi.Data;
 using AvstickareApi.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AvstickareApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AppUserController : ControllerBase
+    //endast för admin, att hämta användare, uppdatera användare och ta bort användare
+    [Authorize(Roles = "Admin")]
+    public class AppUserController(AvstickareContext context) : ControllerBase
     {
-        private readonly AvstickareContext _context;
-
-        public AppUserController(AvstickareContext context)
-        {
-            _context = context;
-        }
+        private readonly AvstickareContext _context = context;
 
         // GET: api/AppUser
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AppUser>>> GetAppUsers()
+        //anonymt objekt istället för AppUser för att inte Password ska skickas med
+        public async Task<ActionResult<IEnumerable<object>>> GetAppUsers()
         {
-            return await _context.AppUsers.ToListAsync();
+            //returnerar en användare, men sorterar ut lösenordet. 
+            var user = await _context.AppUsers
+            .Select(u => new
+            {
+                u.AppUserId,
+                u.UserName,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                u.Role,
+                u.CreatedAt
+            })
+             .ToListAsync();
+
+            return Ok(user);
         }
 
         // GET: api/AppUser/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<AppUser>> GetAppUser(string id)
+        public async Task<ActionResult<object>> GetAppUser(string id)
         {
-            var appUser = await _context.AppUsers.FindAsync(id);
+            var user = await _context.AppUsers.FindAsync(id);
 
-            if (appUser == null)
+            if (user == null)
             {
                 return NotFound();
             }
 
-            return appUser;
+            return Ok(new
+            {
+                user.AppUserId,
+                user.UserName,
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.Role,
+                user.CreatedAt
+            });
         }
 
         // PUT: api/AppUser/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAppUser(string id, AppUser appUser)
+        public async Task<IActionResult> PutAppUser(string id, AppUser updated)
         {
-            if (id != appUser.AppUserId)
+            if (id != updated.AppUserId)
             {
                 return BadRequest();
             }
 
-            _context.Entry(appUser).State = EntityState.Modified;
-
-            try
+            var user = await _context.AppUsers.FindAsync(id);
+            if (user == null)
             {
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AppUserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            
+            // Uppdatera tillåtna fält
+            user.UserName = updated.UserName;
+            user.FirstName = updated.FirstName;
+            user.LastName = updated.LastName;
+            user.Role = updated.Role;
 
+            await _context.SaveChangesAsync();
             return NoContent();
-        }
-
-        // POST: api/AppUser
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<AppUser>> PostAppUser(AppUser appUser)
-        {
-            _context.AppUsers.Add(appUser);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (AppUserExists(appUser.AppUserId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetAppUser", new { id = appUser.AppUserId }, appUser);
         }
 
         // DELETE: api/AppUser/5
@@ -112,11 +104,6 @@ namespace AvstickareApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private bool AppUserExists(string id)
-        {
-            return _context.AppUsers.Any(e => e.AppUserId == id);
         }
     }
 }

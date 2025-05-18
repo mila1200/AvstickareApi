@@ -173,19 +173,5 @@ namespace AvstickareApi.Controllers
             //returnera användarinfo
             return Ok(new { user.UserName, user.FirstName, user.LastName, user.Email});
         }
-
-        //route för global felhantering under produktion
-        [Route("error")]
-        //visas inte i swagger
-        [ApiExplorerSettings(IgnoreApi = true)]
-        public IActionResult HandleError()
-        {
-            var errorContext = HttpContext.Features.Get<IExceptionHandlerFeature>();
-
-            return Problem(
-                detail: errorContext?.Error.StackTrace,
-                title: errorContext?.Error.Message);
-        }
-
     }
 }

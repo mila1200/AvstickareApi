@@ -92,11 +92,6 @@ if (app.Environment.IsDevelopment())
     //i utvecklingsläge, mer detlajerade felmeddelanden
     app.UseDeveloperExceptionPage();
 }
-else
-{
-    //i produktion, omdirigera till endpoint error
-    app.UseExceptionHandler("/error");
-}
 
 app.UseHttpsRedirection();
 

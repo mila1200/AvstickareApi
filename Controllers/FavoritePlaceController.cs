@@ -64,8 +64,10 @@ public class FavoritePlaceController(AvstickareContext context, PlaceService pla
             return Unauthorized();
 
         if (string.IsNullOrWhiteSpace(request.MapServicePlaceId))
+        {
             return BadRequest("Ogiltigt plats-ID.");
-
+        }
+            
         await _placeService.EnsurePlaceExists(request.MapServicePlaceId);
 
         var favorite = new FavoritePlace

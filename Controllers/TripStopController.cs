@@ -15,7 +15,7 @@ public class TripStopController(AvstickareContext context, PlaceService placeSer
     private readonly AvstickareContext _context = context;
     private readonly PlaceService _placeService = placeService;
 
-    
+
     //Hämtar alla stopp för en viss resa.
     [Authorize]
     [HttpGet("{tripId}")]
@@ -31,7 +31,7 @@ public class TripStopController(AvstickareContext context, PlaceService placeSer
         {
             return NotFound(new { message = "Resan hittades inte." });
         }
-    
+
         var stops = trip.TripStops?.Select(s => new
         {
             s.TripStopId,
@@ -42,7 +42,7 @@ public class TripStopController(AvstickareContext context, PlaceService placeSer
         return Ok(stops);
     }
 
-   
+
     //lägger till ett nytt stopp till en resa.
     [Authorize]
     [HttpPost]
@@ -56,12 +56,12 @@ public class TripStopController(AvstickareContext context, PlaceService placeSer
         {
             return NotFound(new { message = "Resan hittades inte." });
         }
-        
+
         if (string.IsNullOrWhiteSpace(tripStop.MapServicePlaceId))
         {
-             return BadRequest("Ogiltigt plats-ID.");
+            return BadRequest("Ogiltigt plats-ID.");
         }
-        
+
         await _placeService.EnsurePlaceExists(tripStop.MapServicePlaceId);
 
         _context.TripStops.Add(tripStop);
@@ -75,13 +75,24 @@ public class TripStopController(AvstickareContext context, PlaceService placeSer
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTripStop(int id)
     {
-        var tripStop = await _context.TripStops.FindAsync(id);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        // Hämta stoppet inklusive tillhörande resa
+        var tripStop = await _context.TripStops
+            .Include(ts => ts.Trip)
+            .FirstOrDefaultAsync(ts => ts.TripStopId == id);
 
         if (tripStop == null)
         {
             return NotFound(new { message = "Stoppet hittades inte." });
         }
-            
+
+        //är det användaren som äger resan?
+        if (tripStop.Trip == null || tripStop.Trip.AppUserId != userId)
+        {
+            return Unauthorized(new { message = "Du har inte behörighet att ta bort detta stopp." });
+        }
+
         _context.TripStops.Remove(tripStop);
         await _context.SaveChangesAsync();
 
