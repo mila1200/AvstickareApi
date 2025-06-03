@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AvstickareApi.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialClean : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -51,8 +51,7 @@ namespace AvstickareApi.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AppUserId = table.Column<string>(type: "text", nullable: false),
                     MapServicePlaceId = table.Column<string>(type: "text", nullable: true),
-                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    PlaceId = table.Column<int>(type: "integer", nullable: true)
+                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -63,11 +62,6 @@ namespace AvstickareApi.Migrations
                         principalTable: "AppUsers",
                         principalColumn: "AppUserId",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_FavoritePlaces_Places_PlaceId",
-                        column: x => x.PlaceId,
-                        principalTable: "Places",
-                        principalColumn: "PlaceId");
                 });
 
             migrationBuilder.CreateTable(
@@ -112,17 +106,11 @@ namespace AvstickareApi.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TripId = table.Column<int>(type: "integer", nullable: false),
                     MapServicePlaceId = table.Column<string>(type: "text", nullable: true),
-                    Order = table.Column<int>(type: "integer", nullable: false),
-                    PlaceId = table.Column<int>(type: "integer", nullable: true)
+                    Order = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_TripStops", x => x.TripStopId);
-                    table.ForeignKey(
-                        name: "FK_TripStops_Places_PlaceId",
-                        column: x => x.PlaceId,
-                        principalTable: "Places",
-                        principalColumn: "PlaceId");
                     table.ForeignKey(
                         name: "FK_TripStops_Trips_TripId",
                         column: x => x.TripId,
@@ -149,11 +137,6 @@ namespace AvstickareApi.Migrations
                 column: "AppUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FavoritePlaces_PlaceId",
-                table: "FavoritePlaces",
-                column: "PlaceId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Trips_AppUserId",
                 table: "Trips",
                 column: "AppUserId");
@@ -167,11 +150,6 @@ namespace AvstickareApi.Migrations
                 name: "IX_Trips_ToPlacePlaceId",
                 table: "Trips",
                 column: "ToPlacePlaceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TripStops_PlaceId",
-                table: "TripStops",
-                column: "PlaceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TripStops_TripId",

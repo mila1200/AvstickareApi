@@ -5,6 +5,7 @@ namespace AvstickareApi.Models
     //plats för att visa på kartan
     public class Place
     {
+        [Key]
         public int PlaceId { get; set; }
 
         //för att kunna hänvisa till platsen via karttjänsten

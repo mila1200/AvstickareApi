@@ -125,9 +125,6 @@ namespace AvstickareApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("FromPlacePlaceId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -136,16 +133,9 @@ namespace AvstickareApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ToPlacePlaceId")
-                        .HasColumnType("integer");
-
                     b.HasKey("TripId");
 
                     b.HasIndex("AppUserId");
-
-                    b.HasIndex("FromPlacePlaceId");
-
-                    b.HasIndex("ToPlacePlaceId");
 
                     b.ToTable("Trips");
                 });
@@ -190,18 +180,6 @@ namespace AvstickareApi.Migrations
                     b.HasOne("AvstickareApi.Models.AppUser", "User")
                         .WithMany("Trips")
                         .HasForeignKey("AppUserId");
-
-                    b.HasOne("AvstickareApi.Models.Place", "FromPlace")
-                        .WithMany()
-                        .HasForeignKey("FromPlacePlaceId");
-
-                    b.HasOne("AvstickareApi.Models.Place", "ToPlace")
-                        .WithMany()
-                        .HasForeignKey("ToPlacePlaceId");
-
-                    b.Navigation("FromPlace");
-
-                    b.Navigation("ToPlace");
 
                     b.Navigation("User");
                 });

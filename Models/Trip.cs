@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AvstickareApi.Models
 {
@@ -15,12 +16,14 @@ namespace AvstickareApi.Models
         [Required]
         public string? FromPlaceId { get; set; }
 
+        [NotMapped]
         public Place? FromPlace { get; set; }
-        
+
         //slutplats, koppling till placeId
         [Required]
         public string? ToPlaceId { get; set; }
         
+        [NotMapped]
         public Place? ToPlace { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

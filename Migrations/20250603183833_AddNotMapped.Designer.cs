@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AvstickareApi.Migrations
 {
     [DbContext(typeof(AvstickareContext))]
-    [Migration("20250512084731_RemovePlaceIdFromFavoritePlace")]
-    partial class RemovePlaceIdFromFavoritePlace
+    [Migration("20250603183833_AddNotMapped")]
+    partial class AddNotMapped
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -128,9 +128,6 @@ namespace AvstickareApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("FromPlacePlaceId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -139,16 +136,9 @@ namespace AvstickareApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ToPlacePlaceId")
-                        .HasColumnType("integer");
-
                     b.HasKey("TripId");
 
                     b.HasIndex("AppUserId");
-
-                    b.HasIndex("FromPlacePlaceId");
-
-                    b.HasIndex("ToPlacePlaceId");
 
                     b.ToTable("Trips");
                 });
@@ -167,15 +157,10 @@ namespace AvstickareApi.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("PlaceId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TripId")
                         .HasColumnType("integer");
 
                     b.HasKey("TripStopId");
-
-                    b.HasIndex("PlaceId");
 
                     b.HasIndex("TripId");
 
@@ -199,27 +184,11 @@ namespace AvstickareApi.Migrations
                         .WithMany("Trips")
                         .HasForeignKey("AppUserId");
 
-                    b.HasOne("AvstickareApi.Models.Place", "FromPlace")
-                        .WithMany()
-                        .HasForeignKey("FromPlacePlaceId");
-
-                    b.HasOne("AvstickareApi.Models.Place", "ToPlace")
-                        .WithMany()
-                        .HasForeignKey("ToPlacePlaceId");
-
-                    b.Navigation("FromPlace");
-
-                    b.Navigation("ToPlace");
-
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("AvstickareApi.Models.TripStop", b =>
                 {
-                    b.HasOne("AvstickareApi.Models.Place", null)
-                        .WithMany("TripStops")
-                        .HasForeignKey("PlaceId");
-
                     b.HasOne("AvstickareApi.Models.Trip", "Trip")
                         .WithMany("TripStops")
                         .HasForeignKey("TripId")
@@ -234,11 +203,6 @@ namespace AvstickareApi.Migrations
                     b.Navigation("FavoritePlaces");
 
                     b.Navigation("Trips");
-                });
-
-            modelBuilder.Entity("AvstickareApi.Models.Place", b =>
-                {
-                    b.Navigation("TripStops");
                 });
 
             modelBuilder.Entity("AvstickareApi.Models.Trip", b =>
