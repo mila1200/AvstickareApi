@@ -21,7 +21,7 @@ public class SuggestedPlaceService(HttpClient http, IConfiguration config)
         const int step = 10;
 
         //begränsar svaren för att det inte ska urarta
-        const int maxTotalResults = 5;
+        const int maxTotalResults = 1000;
 
         for (int i = 0; i < points.Count && places.Count < maxTotalResults; i += step)
         {
@@ -31,7 +31,7 @@ public class SuggestedPlaceService(HttpClient http, IConfiguration config)
             var body = new
             {
                 includedTypes = new[] { "tourist_attraction", "museum", "park", "restaurant", "art_gallery" },
-                maxResultCount = 10,
+                maxResultCount = 5,
                  //skapar en cirkel i mitten av varje punkt med en radie på 5km
                 locationRestriction = new
                 {
